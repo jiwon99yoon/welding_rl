@@ -1,0 +1,239 @@
+<!-- /home/minjun/rl_ws/src/mujoco_rl_env/models/fr3_rl_reach.xml-->
+<mujoco model="fr3_rl_reach">
+
+    <option timestep="0.002" gravity="0 0 -9.81"/>
+  
+    <default>
+        <geom type="box" condim="1" friction="0.8 0.1 0.1" rgba="0.6 0.6 0.6 1"/>
+    </default>
+
+    <!-- fr3 & common asset -->
+    <include file="common/assets.xml"/>
+    <include file="common/sensor.xml"/>
+    <include file="fr3/assets.xml"/>
+    <include file="franka_hand/assets.xml"/>
+    <include file="fr3/actuator.xml"/>
+    <include file="franka_hand/actuator.xml"/>
+
+    <!-- common scene for welding -->
+    <worldbody>
+    
+        <!-- light/바닥 정의 -->
+        <include file="common/scene.xml" />        
+        <!-- Franka 로봇 불러오기 -->
+        <include file="fr3/fr3_hand_urdf.xml"/>
+
+        <!-- welding 환경 -->    
+        <!-- 테이블 (확장된 크기, 무작위화를 위한 기본 위치) -->
+        <body name="table" pos="0.5 0 0.45" euler="0 0 0"> 
+            <!-- 원형 테이블로 변경 (더 넓은 작업 공간) -->
+            <geom name="table_top" type="cylinder" size="0.25 0.02" pos="0 0 0.02" rgba="0.3 0.3 0.3 1" contype="2" conaffinity="2"/>
+            
+            <!-- Extended Lap joint (더 긴 경로) -->
+            <body name="lap_base" pos="-0.15 -0.15 0.04">
+                <geom type="box" size="0.15 0.06 0.005" rgba="0.6 0.2 0.2 1" contype="2" conaffinity="2"/>
+                <joint type="hinge" axis="0 0 1" pos="0 0 0.005" limited="true" range="-0.1 0.1"/>
+                <body name="lap_top" pos="0.05 0.03 0.005">
+                    <geom type="box" size="0.15 0.06 0.005" rgba="0.8 0.3 0.3 1" contype="2" conaffinity="2"/>
+                    <!-- 확장된 용접 경로 (start -> waypoints -> end) -->
+                    <site name="lap_start" pos="-0.15 -0.06 0.005" size="0.003" rgba="1 0 0 1"/>
+                    <site name="lap_waypoint1" pos="-0.08 -0.03 0.005" size="0.003" rgba="1 0.5 0 1"/>
+                    <site name="lap_waypoint2" pos="0 0 0.005" size="0.003" rgba="0.5 0.5 0 1"/>
+                    <site name="lap_waypoint3" pos="0.08 0.03 0.005" size="0.003" rgba="0 0.5 0 1"/>
+                    <site name="lap_end" pos="0.15 0.06 0.005" size="0.003" rgba="0 1 0 1"/>
+                    <joint type="hinge" axis="0 0 1" pos="0 0 0.005" limited="true" range="-0.1 0.1"/>
+                </body>
+            </body>
+
+            <!-- Fillet weld joint (회전된 T자형) -->
+            <body name="fillet_joint_base" pos="0.18 0.1 0.04" euler="0 0 0.7854">
+                <geom type="box" size="0.12 0.025 0.005" rgba="0.2 0.2 0.8 1" contype="2" conaffinity="2"/>
+                <joint type="hinge" axis="0 0 1" pos="0 0 0.005" limited="true" range="-0.1 0.1"/>
+                <body name="fillet_joint_vertical" pos="0 0 0.015">
+                    <geom type="box" size="0.025 0.12 0.005" pos="0 0 0.025" rgba="0.2 0.2 0.8 1" contype="2" conaffinity="2"/>
+                    <joint type="hinge" axis="0 0 1" pos="0 0 0.005" limited="true" range="-0.1 0.1"/>
+                </body>
+            </body>
+
+            <!-- 곡면 파이프 (cylinder) -->
+            <body name="curved_pipe" pos="-0.05 0.2 0.04" euler="0 1.57 0">
+                <geom type="cylinder" size="0.025 0.15" rgba="0.1 0.6 0.1 1" contype="2" conaffinity="2"/>
+                <joint type="hinge" axis="0 0 1" pos="0 0 0.005" limited="true" range="-0.1 0.1"/>
+            </body>
+            
+            <!-- 장애물 1: 움직이는 구체 (작업자의 손 시뮬레이션) -->
+            <body name="moving_obstacle" pos="0.1 0 0.15">
+                <joint name="obstacle_x" type="slide" axis="1 0 0" limited="true" range="-0.1 0.1"/>
+                <joint name="obstacle_y" type="slide" axis="0 1 0" limited="true" range="-0.1 0.1"/>
+                <joint name="obstacle_z" type="slide" axis="0 0 1" limited="true" range="-0.05 0.05"/>
+                <geom name="obstacle_sphere" type="sphere" size="0.04" rgba="0.9 0.9 0.2 0.8" contype="2" conaffinity="2"/>
+                <!-- 손가락 모양 추가 -->
+                <body name="finger1" pos="0.04 0 0">
+                    <geom type="capsule" size="0.01 0.03" rgba="0.9 0.8 0.7 1" contype="2" conaffinity="2"/>
+                </body>
+            </body>
+            
+            <!-- 장애물 2: 정적 장애물 (용접 클램프) -->
+            <body name="static_clamp1" pos="-0.12 0.08 0.04">
+                <geom type="box" size="0.02 0.02 0.05" rgba="0.4 0.4 0.4 1" contype="2" conaffinity="2"/>
+                <body name="clamp_arm1" pos="0 0 0.05">
+                    <geom type="box" size="0.04 0.01 0.01" rgba="0.5 0.5 0.5 1" contype="2" conaffinity="2"/>
+                </body>
+            </body>
+            
+            <!-- 장애물 3: 산업용 도구 (드릴 머신 모형) -->
+            <body name="tool_obstacle" pos="0.15 -0.1 0.04">
+                <geom type="cylinder" size="0.03 0.08" rgba="0.2 0.7 0.2 1" contype="2" conaffinity="2"/>
+                <body name="tool_tip" pos="0 0 0.08">
+                    <geom type="cylinder" size="0.01 0.03" rgba="0.8 0.8 0.8 1" contype="2" conaffinity="2"/>
+                </body>
+            </body>
+            
+            <!-- 장애물 4: 작업자 모형 (간단한 인체 상반신) -->
+            <body name="worker_torso" pos="0.0 -0.25 0.1">
+                <!-- 몸통 -->
+                <geom type="capsule" size="0.08 0.15" pos="0 0 0" rgba="0.2 0.3 0.6 1" contype="2" conaffinity="2"/>
+                <!-- 머리 -->
+                <body name="worker_head" pos="0 0 0.2">
+                    <geom type="sphere" size="0.06" rgba="0.9 0.8 0.7 1" contype="2" conaffinity="2"/>
+                </body>
+                <!-- 왼팔 -->
+                <body name="worker_left_arm" pos="-0.1 0 0.1">
+                    <geom type="capsule" size="0.03 0.12" euler="0 1.2 0" rgba="0.9 0.8 0.7 1" contype="2" conaffinity="2"/>
+                </body>
+                <!-- 오른팔 -->
+                <body name="worker_right_arm" pos="0.1 0 0.1">
+                    <geom type="capsule" size="0.03 0.12" euler="0 -1.2 0" rgba="0.9 0.8 0.7 1" contype="2" conaffinity="2"/>
+                </body>
+            </body>
+        </body>
+    </worldbody>
+    
+    <!-- 키프레임 추가 (웨이포인트 포함) 
+    <keyframe>
+        <key name="home" qpos="0 0 0 -1.57 0 1.57 0.785 0 0 0 0 0 0 0 0 0 0"/>
+        <key name="lap_start_pose" qpos="0.0555323 -0.519356 -0.522075 -2.239023 -0.030734 2.252302 0.329849 0 0 0 0 0 0 0 0 0 0"/>
+        <key name="lap_end_pose" qpos="-0.0214929 -0.7660162 -0.3266901 -2.4520896 -0.0856205 2.2117625 0.4996375 0 0 0 0 0 0 0 0 0 0"/>
+    </keyframe>-->
+</mujoco>
+
+
+
+
+<!-- <mujoco model="fr3_rl_reach">
+
+    <option timestep="0.002" gravity="0 0 -9.81"/>
+  
+    <default>
+        <geom type="box" condim="1" friction="0.8 0.1 0.1" rgba="0.6 0.6 0.6 1"/>
+    </default>
+
+    <!-- fr3 & common asset -->
+    <include file="common/assets.xml"/>
+    <include file="common/sensor.xml"/>
+    <include file="fr3/assets.xml"/>
+    <include file="franka_hand/assets.xml"/>
+    <include file="fr3/actuator.xml"/>
+    <include file="franka_hand/actuator.xml"/>
+
+    <!-- common scene for welding -->
+    <worldbody>
+    
+        <!-- light/바닥 정의 -->
+        <include file="common/scene.xml" />        
+        <!-- Franka 로봇 불러오기 -->
+        <include file="fr3/fr3_hand_urdf.xml"/>
+
+        <!-- welding 환경 -->    
+        <!-- 테이블 (확장된 크기, 무작위화를 위한 기본 위치) -->
+        <body name="table" pos="0.5 0 0.45" euler="0 0 0"> 
+            <!-- 원형 테이블로 변경 (더 넓은 작업 공간) -->
+            <geom name="table_top" type="cylinder" size="0.25 0.02" pos="0 0 0.02" rgba="0.3 0.3 0.3 1" contype="2" conaffinity="2"/>
+            
+            <!-- Extended Lap joint (더 긴 경로) -->
+            <body name="lap_base" pos="-0.15 -0.15 0.04">
+                <geom type="box" size="0.15 0.06 0.005" rgba="0.6 0.2 0.2 1" contype="2" conaffinity="2"/>
+                <joint type="hinge" axis="0 0 1" pos="0 0 0.005" limited="true" range="-0.1 0.1"/>
+                <body name="lap_top" pos="0.05 0.03 0.005">
+                    <geom type="box" size="0.15 0.06 0.005" rgba="0.8 0.3 0.3 1" contype="2" conaffinity="2"/>
+                    <!-- 확장된 용접 경로 (start -> waypoints -> end) -->
+                    <site name="lap_start" pos="-0.15 -0.06 0.005" size="0.003" rgba="1 0 0 1"/>
+                    <site name="lap_waypoint1" pos="-0.08 -0.03 0.005" size="0.003" rgba="1 0.5 0 1"/>
+                    <site name="lap_waypoint2" pos="0 0 0.005" size="0.003" rgba="0.5 0.5 0 1"/>
+                    <site name="lap_waypoint3" pos="0.08 0.03 0.005" size="0.003" rgba="0 0.5 0 1"/>
+                    <site name="lap_end" pos="0.15 0.06 0.005" size="0.003" rgba="0 1 0 1"/>
+                    <joint type="hinge" axis="0 0 1" pos="0 0 0.005" limited="true" range="-0.1 0.1"/>
+                </body>
+            </body>
+
+            <!-- Fillet weld joint (회전된 T자형) -->
+            <body name="fillet_joint_base" pos="0.18 0.1 0.04" euler="0 0 0.7854">
+                <geom type="box" size="0.12 0.025 0.005" rgba="0.2 0.2 0.8 1" contype="2" conaffinity="2"/>
+                <joint type="hinge" axis="0 0 1" pos="0 0 0.005" limited="true" range="-0.1 0.1"/>
+                <body name="fillet_joint_vertical" pos="0 0 0.015">
+                    <geom type="box" size="0.025 0.12 0.005" pos="0 0 0.025" rgba="0.2 0.2 0.8 1" contype="2" conaffinity="2"/>
+                    <joint type="hinge" axis="0 0 1" pos="0 0 0.005" limited="true" range="-0.1 0.1"/>
+                </body>
+            </body>
+
+            <!-- 곡면 파이프 (cylinder) -->
+            <body name="curved_pipe" pos="-0.05 0.2 0.04" euler="0 1.57 0">
+                <geom type="cylinder" size="0.025 0.15" rgba="0.1 0.6 0.1 1" contype="2" conaffinity="2"/>
+                <joint type="hinge" axis="0 0 1" pos="0 0 0.005" limited="true" range="-0.1 0.1"/>
+            </body>
+            
+            <!-- 장애물 1: 움직이는 구체 (작업자의 손 시뮬레이션) -->
+            <body name="moving_obstacle" pos="0.1 0 0.15">
+                <joint name="obstacle_x" type="slide" axis="1 0 0" limited="true" range="-0.1 0.1"/>
+                <joint name="obstacle_y" type="slide" axis="0 1 0" limited="true" range="-0.1 0.1"/>
+                <joint name="obstacle_z" type="slide" axis="0 0 1" limited="true" range="-0.05 0.05"/>
+                <geom name="obstacle_sphere" type="sphere" size="0.04" rgba="0.9 0.9 0.2 0.8" contype="2" conaffinity="2"/>
+                <!-- 손가락 모양 추가 -->
+                <body name="finger1" pos="0.04 0 0">
+                    <geom type="capsule" size="0.01 0.03" rgba="0.9 0.8 0.7 1" contype="2" conaffinity="2"/>
+                </body>
+            </body>
+            
+            <!-- 장애물 2: 정적 장애물 (용접 클램프) -->
+            <body name="static_clamp1" pos="-0.12 0.08 0.04">
+                <geom type="box" size="0.02 0.02 0.05" rgba="0.4 0.4 0.4 1" contype="2" conaffinity="2"/>
+                <body name="clamp_arm1" pos="0 0 0.05">
+                    <geom type="box" size="0.04 0.01 0.01" rgba="0.5 0.5 0.5 1" contype="2" conaffinity="2"/>
+                </body>
+            </body>
+            
+            <!-- 장애물 3: 산업용 도구 (드릴 머신 모형) -->
+            <body name="tool_obstacle" pos="0.15 -0.1 0.04">
+                <geom type="cylinder" size="0.03 0.08" rgba="0.2 0.7 0.2 1" contype="2" conaffinity="2"/>
+                <body name="tool_tip" pos="0 0 0.08">
+                    <geom type="cylinder" size="0.01 0.03" rgba="0.8 0.8 0.8 1" contype="2" conaffinity="2"/>
+                </body>
+            </body>
+            
+            <!-- 장애물 4: 작업자 모형 (간단한 인체 상반신) -->
+            <body name="worker_torso" pos="0.0 -0.25 0.1">
+                <!-- 몸통 -->
+                <geom type="capsule" size="0.08 0.15" pos="0 0 0" rgba="0.2 0.3 0.6 1" contype="2" conaffinity="2"/>
+                <!-- 머리 -->
+                <body name="worker_head" pos="0 0 0.2">
+                    <geom type="sphere" size="0.06" rgba="0.9 0.8 0.7 1" contype="2" conaffinity="2"/>
+                </body>
+                <!-- 왼팔 -->
+                <body name="worker_left_arm" pos="-0.1 0 0.1">
+                    <geom type="capsule" size="0.03 0.12" euler="0 1.2 0" rgba="0.9 0.8 0.7 1" contype="2" conaffinity="2"/>
+                </body>
+                <!-- 오른팔 -->
+                <body name="worker_right_arm" pos="0.1 0 0.1">
+                    <geom type="capsule" size="0.03 0.12" euler="0 -1.2 0" rgba="0.9 0.8 0.7 1" contype="2" conaffinity="2"/>
+                </body>
+            </body>
+        </body>
+    </worldbody>
+    
+    <!-- 키프레임 추가 (웨이포인트 포함) - 코드가 안돌아가서 일단 주석처리 
+    <keyframe>
+        <key name="home" qpos="0 0 0 -1.57 0 1.57 0.785 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0"/>
+        <key name="lap_start_pose" qpos="-0.0313527 -0.5176165 -0.4489684 -2.2359937 -0.0756571 -2.2178279 -0.3668594 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0"/>
+        <key name="lap_end_pose" qpos="-0.0214813 -0.7660105 -0.3266952 -2.4520914 -0.0856292 -2.2117574 -0.4996434 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0"/>
+    </keyframe>-->
+</mujoco>  -->

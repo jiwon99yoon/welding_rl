@@ -88,16 +88,15 @@ class FrankaReachEnv(gym.Env):
 
         # ★ 논문 기반 가중치 설정 ★
         # - Joint 목표: 강하게 유도 (α = 5 ~ 10)  
-        # - EE 위치: 보조 보상 (β = 1 ~ 3) -> 제거
         # - 속도 패널티: 작게 (γ = 0.001 ~ 0.01)  
         # - jerk 패널티: 매우 작게 (δ = 1e-4 ~ 1e-3)
 
-        self.alpha = 10.0    # position error weight
-        self.beta = 0.01    # velocity penalty
-        self.gamma = 0.0001  # jerk penalty
+        self.alpha = 50.0    # position error weight
+        self.beta = 0.000    # velocity penalty
+        self.gamma = 0.0000  # jerk penalty
 
         # Episode limits
-        self.max_steps = 200 # trajectory 길이, 100step까지만 했기때문에 - 3.3초
+        self.max_steps = 200 # trajectory 길이,         100step까지만 했기때문에 - 3.3초
         self.step_count = 0
         self.last_action = np.zeros(self.model.nu)
 
@@ -185,10 +184,6 @@ class FrankaReachEnv(gym.Env):
         mujoco.mj_step(self.model, self.data)
         obs = self._get_obs()
 
-
-        # ▶ pos_err: 전체 관절(qpos) 평균 L2 거리
-        # ▶ vel_pen: 관절 속도 제곱합 (energy cost)
-        # ▶ act_pen: 제어 입력 변화(jerk) 제곱합
         # 1) Joint-space error (주목표) -  Compute joint-space distance
         pos_err = np.linalg.norm(self.data.qpos - self.goal_qpos)
         # 2) 속도 및 제어 변화 패널티
@@ -208,8 +203,8 @@ class FrankaReachEnv(gym.Env):
 
         # 목표 도달 성공시 보너스
         required_pose_err = 0.05 # 0.05 기준
-        if pos_err < required_pose_err:  # pos_err가 0.001로 수정 (더 합리적인 값)
-            reward += 50.0 #원래 10.0
+        if pos_err < required_pose_err: 
+            reward += 50.0 #원래 10.0에서 수정
             print(f"🎉 Goal reached! pos_error: {pos_err:.3f}")
 
         # 다음 스텝을 위해 이전 오차 업데이트

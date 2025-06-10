@@ -192,15 +192,9 @@ if __name__ == "__main__":
         )
         # 평가 환경도 Monitor로 감싸기
         env = Monitor(env)
-        return env
-    
-    # 학습 환경 설정
-    train_env = DummyVecEnv([make_train_env])
-    train_env = VecNormalize(
-        train_env, 
-        norm_obs=True, 
-        norm_reward=False,
-        clip_obs=10.0
+        return env면 좋을지 알려줘
+
+
     )
     
     # 평가 환경 설정 (정규화 포함)
@@ -242,16 +236,16 @@ if __name__ == "__main__":
     model = PPO(
         "MlpPolicy",
         train_env,
-        learning_rate=3e-4, #기존 3e-4
+        learning_rate=2e-4, #기존 3e-4
         n_steps=2048,
         batch_size=64,
-        n_epochs=20, #기존 10
-        gamma=0.995,# 기존 0.99 
+        n_epochs=20,        #기존 10
+        gamma=0.995,        #기존 0.99 
         gae_lambda=0.95,
-        clip_range=0.3, #기존 0.2
-        ent_coef=0.05,
-        vf_coef=0.3, # 기존 0.5
-        max_grad_norm=0.7, #기존 0.5
+        clip_range=0.2,     #기존 0.2
+        ent_coef=0.05,      #기존 0.1
+        vf_coef=0.1,        #기존 0.05
+        max_grad_norm=0.5, #기존 ent0.5
         verbose=1,
         tensorboard_log=f"runs/{run_name}/tensorboard"
     )
@@ -273,7 +267,7 @@ if __name__ == "__main__":
     
     try:
         model.learn(
-            total_timesteps=1_000_000, #timestep 1000000까지
+            total_timesteps=3_000_000, #timestep 1000000까지
             callback=callbacks,
             log_interval=10,
             tb_log_name=run_name # TensorBoard 로그 이름
